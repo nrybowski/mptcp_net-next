@@ -1945,7 +1945,6 @@ static __poll_t mptcp_poll(struct file *file, struct socket *sock,
 
 	msk = mptcp_sk(sk);
 	sock_poll_wait(file, sock, wait);
-	lock_sock(sk);
 
 	if (test_bit(MPTCP_DATA_READY, &msk->flags))
 		mask = EPOLLIN | EPOLLRDNORM;
@@ -1954,8 +1953,6 @@ static __poll_t mptcp_poll(struct file *file, struct socket *sock,
 		mask |= EPOLLOUT | EPOLLWRNORM;
 	if (sk->sk_shutdown & RCV_SHUTDOWN)
 		mask |= EPOLLIN | EPOLLRDNORM | EPOLLRDHUP;
-
-	release_sock(sk);
 
 	return mask;
 }
