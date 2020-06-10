@@ -247,10 +247,11 @@ static void subflow_finish_connect(struct sock *sk, const struct sk_buff *skb)
 		pr_debug("subflow=%p, thmac=%llu, remote_nonce=%u", subflow,
 			 subflow->thmac, subflow->remote_nonce);
 	} else {
+		if (subflow->request_mptcp)
+			MPTCP_INC_STATS(sock_net(sk),
+					MPTCP_MIB_MPCAPABLEACTIVEFALLBACK);
 		mptcp_do_fallback(sk);
 		pr_fallback(mptcp_sk(subflow->conn));
-		MPTCP_INC_STATS(sock_net(sk),
-				MPTCP_MIB_MPCAPABLEACTIVEFALLBACK);
 	}
 
 	if (mptcp_check_fallback(sk))
