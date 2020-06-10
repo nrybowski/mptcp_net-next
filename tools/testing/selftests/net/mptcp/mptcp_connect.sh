@@ -42,7 +42,7 @@ usage() {
 	echo -e "\t-e: ethtool features to disable, e.g.: \"-e tso -e gso\" (default: randomly disable any of tso/gso/gro)"
 	echo -e "\t-4: IPv4 only: disable IPv6 tests (default: test both IPv4 and IPv6)"
 	echo -e "\t-c: capture packets for each test using tcpdump (default: no capture)"
-	echo -e "\t-s: size of file to transfer in bytes (default random)"
+	echo -e "\t-f: size of file to transfer in bytes (default random)"
 	echo -e "\t-S: set sndbuf value (default: use kernel default)"
 	echo -e "\t-R: set rcvbuf value (default: use kernel default)"
 	echo -e "\t-m: test mode (poll, sendfile; default: poll)"
