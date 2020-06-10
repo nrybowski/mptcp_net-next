@@ -1,4 +1,8 @@
-From: Matthieu Baerts <matthieu.baerts@tessares.net>
-Subject: [PATCH] t/mptcp-do-nonce-initialization-at-subflow-creation-time
+From: Paolo Abeni <pabeni@redhat.com>
+Subject: [PATCH] mptcp: do nonce initialization at subflow creation time
 
-Signed-off-by: Matthieu Baerts <matthieu.baerts@tessares.net>
+This clean-up the code a bit, reduces the number of
+used hooks and indirect call requested, and allow
+better error reporting from __mptcp_subflow_connect()
+
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
