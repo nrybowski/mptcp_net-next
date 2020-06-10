@@ -1775,6 +1775,7 @@ static int mptcp_stream_connect(struct socket *sock, struct sockaddr *uaddr,
 				int addr_len, int flags)
 {
 	struct mptcp_sock *msk = mptcp_sk(sock->sk);
+	struct mptcp_subflow_context *subflow;
 	struct socket *ssock;
 	int err;
 
@@ -1794,13 +1795,16 @@ static int mptcp_stream_connect(struct socket *sock, struct sockaddr *uaddr,
 		goto unlock;
 	}
 
+	subflow = mptcp_subflow_ctx(ssock->sk);
 #ifdef CONFIG_TCP_MD5SIG
 	/* no MPTCP if MD5SIG is enabled on this socket or we may run out of
 	 * TCP option space.
 	 */
 	if (rcu_access_pointer(tcp_sk(ssock->sk)->md5sig_info))
-		mptcp_subflow_ctx(ssock->sk)->request_mptcp = 0;
+		subflow->request_mptcp = 0;
 #endif
+	if (subflow->request_mptcp && mptcp_token_new_connect(ssock->sk))
+		subflow->request_mptcp = 0;
 
 do_connect:
 	err = ssock->ops->connect(ssock, uaddr, addr_len, flags);
