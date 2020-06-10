@@ -34,13 +34,7 @@ static int subflow_rebuild_header(struct sock *sk)
 	struct mptcp_subflow_context *subflow = mptcp_subflow_ctx(sk);
 	int local_id;
 
-	if (subflow->request_mptcp && sk_unhashed(subflow->conn)) {
-		pr_debug("subflow=%p", sk);
-		if (mptcp_token_new_connect(sk)) {
-			subflow->mp_capable = 0;
-			goto out;
-		}
-	} else if (subflow->request_join && !subflow->local_nonce) {
+	if (subflow->request_join && !subflow->local_nonce) {
 		struct mptcp_sock *msk = (struct mptcp_sock *)subflow->conn;
 
 		pr_debug("subflow=%p", sk);
@@ -251,7 +245,7 @@ static void subflow_finish_connect(struct sock *sk, const struct sk_buff *skb)
 		subflow->remote_nonce = mp_opt.nonce;
 		pr_debug("subflow=%p, thmac=%llu, remote_nonce=%u", subflow,
 			 subflow->thmac, subflow->remote_nonce);
-	} else if (subflow->request_mptcp) {
+	} else {
 		tp->is_mptcp = 0;
 	}
 
