@@ -39,4 +39,6 @@ Changes since RFC v1:
 
 BugLink: https://github.com/multipath-tcp/mptcp_net-next/issues/11
 BugLink: https://github.com/multipath-tcp/mptcp_net-next/issues/22
+Co-developed-by: Paolo Abeni <pabeni@redhat.com>
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
 Signed-off-by: Davide Caratti <dcaratti@redhat.com>
