@@ -1,5 +1,5 @@
 From: Paolo Abeni <pabeni@redhat.com>
-Subject: [PATCH] mptcp: refactor token container.
+Subject: [PATCH] mptcp: refactor token container
 
 Replace the radix tree with an hash table allocated
 at boot time. The radix tree has some short coming:
