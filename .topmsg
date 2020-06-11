@@ -1,4 +1,11 @@
-From: Matthieu Baerts <matthieu.baerts@tessares.net>
-Subject: [PATCH] t/mptcp-close-poll-races
+From: Paolo Abeni <pabeni@redhat.com>
+Subject: [PATCH] mptcp: close poll() races
 
-Signed-off-by: Matthieu Baerts <matthieu.baerts@tessares.net>
+mptcp_poll always return POLLOUT for unblocking
+connect(), ensure that the socket is a suitable
+state.
+The MPTCP_DATA_READY bit is never cleared on accept:
+ensure we don't leave mptcp_accept() with an empty
+accept queue and such bit set.
+
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
