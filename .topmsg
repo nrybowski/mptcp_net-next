@@ -1,0 +1,4 @@
+From: Matthieu Baerts <matthieu.baerts@tessares.net>
+Subject: [PATCH] t/mptcp-drop-MP_JOIN-request-sock-on-syn-cookies
+
+Signed-off-by: Matthieu Baerts <matthieu.baerts@tessares.net>
