@@ -261,6 +261,7 @@ struct mptcp_subflow_request_sock {
 	u64	thmac;
 	u32	local_nonce;
 	u32	remote_nonce;
+	struct mptcp_sock	*msk;
 	struct hlist_nulls_node token_node;
 };
 
