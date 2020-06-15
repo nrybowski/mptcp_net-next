@@ -1,4 +1,13 @@
-From: Matthieu Baerts <matthieu.baerts@tessares.net>
-Subject: [PATCH] t/mptcp-drop-MP_JOIN-request-sock-on-syn-cookies
+From: Paolo Abeni <pabeni@redhat.com>
+Subject: [PATCH] mptcp: drop MP_JOIN request sock on syn cookies
 
-Signed-off-by: Matthieu Baerts <matthieu.baerts@tessares.net>
+Currently any MPTCP socket using syn cookies will fallback to
+TCP at 3rd ack time. In case of MP_JOIN requests, the RFC mandate
+closing the child and sockets, but the existing error paths
+do not handle the syncookie scenario correctly.
+
+Address the issue always forcing the child shutdown in case of
+MP_JOIN fallback.
+
+Fixes: ae2dd7164943 ("mptcp: handle tcp fallback when using syn cookies")
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
