@@ -261,6 +261,7 @@ struct mptcp_subflow_request_sock {
 	u64	thmac;
 	u32	local_nonce;
 	u32	remote_nonce;
+	struct mptcp_sock	*msk;
 	struct hlist_nulls_node token_node;
 };
 
@@ -506,5 +507,15 @@ static inline void mptcp_do_fallback(struct sock *sk)
 
 #define pr_fallback(a) do { pr_debug("%s:fallback to TCP (msk=%p)",\
 				      __FUNCTION__, a); } while (0)
+
+static inline bool subflow_simultaneous_connect(struct sock *sk)
+{
+	struct mptcp_subflow_context *subflow = mptcp_subflow_ctx(sk);
+	struct sock *parent = subflow->conn;
+
+	return sk->sk_state == TCP_ESTABLISHED &&
+	       !mptcp_sk(parent)->pm.server_side &&
+	       !subflow->conn_finished;
+}
 
 #endif /* __MPTCP_PROTOCOL_H */
