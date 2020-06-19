@@ -1,4 +1,6 @@
-From: Matthieu Baerts <matthieu.baerts@tessares.net>
-Subject: [PATCH] t/mptcp-create-first-subflow-at-msk-creation-time
+From: Paolo Abeni <pabeni@redhat.com>
+Subject: [PATCH] mptcp: create first subflow at msk creation time
 
-Signed-off-by: Matthieu Baerts <matthieu.baerts@tessares.net>
+This cleans the code a bit and makes the behavior more consistent.
+
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
