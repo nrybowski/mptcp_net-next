@@ -1302,8 +1302,6 @@ static void mptcp_subflow_shutdown(struct sock *ssk, int how,
 		break;
 	}
 
-	/* Wake up anyone sleeping in poll. */
-	ssk->sk_state_change(ssk);
 	release_sock(ssk);
 }
 
@@ -1906,18 +1904,11 @@ static int mptcp_shutdown(struct socket *sock, int how)
 {
 	struct mptcp_sock *msk = mptcp_sk(sock->sk);
 	struct mptcp_subflow_context *subflow;
-	struct socket *ssock;
 	int ret = 0;
 
 	pr_debug("sk=%p, how=%d", msk, how);
 
 	lock_sock(sock->sk);
-	ssock = __mptcp_tcp_fallback(msk);
-	if (ssock) {
-		release_sock(sock->sk);
-		return inet_shutdown(ssock, how);
-	}
-
 	if (how == SHUT_WR || how == SHUT_RDWR)
 		inet_sk_state_store(sock->sk, TCP_FIN_WAIT1);
 
@@ -1942,6 +1933,9 @@ static int mptcp_shutdown(struct socket *sock, int how)
 
 		mptcp_subflow_shutdown(tcp_sk, how, 1, msk->write_seq);
 	}
+
+	/* Wake up anyone sleeping in poll. */
+	sock->sk->sk_state_change(sock->sk);
 
 out_unlock:
 	release_sock(sock->sk);
