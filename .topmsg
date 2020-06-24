@@ -1,0 +1,4 @@
+From: Matthieu Baerts <matthieu.baerts@tessares.net>
+Subject: [PATCH] t/mptcp-__mptcp_tcp_fallback-returns-a-struct-sock
+
+Signed-off-by: Matthieu Baerts <matthieu.baerts@tessares.net>
