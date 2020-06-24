@@ -1,4 +1,12 @@
-From: Matthieu Baerts <matthieu.baerts@tessares.net>
-Subject: [PATCH] t/mptcp-__mptcp_tcp_fallback-returns-a-struct-sock
+From: Paolo Abeni <pabeni@redhat.com>
+Subject: [PATCH] mptcp: __mptcp_tcp_fallback() returns a struct sock
 
-Signed-off-by: Matthieu Baerts <matthieu.baerts@tessares.net>
+Currently __mptcp_tcp_fallback() always return NULL
+on incoming connections, because MPTCP does not create
+the additional socket for the first subflow.
+Since the previous commit no __mptcp_tcp_fallback()
+caller needs a struct socket, so let __mptcp_tcp_fallback()
+return the first subflow sock and cope correctly even with
+incoming connections.
+
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
