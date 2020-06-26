@@ -429,7 +429,8 @@ static void phylink_mac_config_up(struct phylink *pl,
 static void phylink_mac_pcs_an_restart(struct phylink *pl)
 {
 	if (pl->link_config.an_enabled &&
-	    phy_interface_mode_is_8023z(pl->link_config.interface)) {
+	    phy_interface_mode_is_8023z(pl->link_config.interface) &&
+	    phylink_autoneg_inband(pl->cur_link_an_mode)) {
 		if (pl->pcs_ops)
 			pl->pcs_ops->pcs_an_restart(pl->config);
 		else
@@ -1825,6 +1826,54 @@ int phylink_mii_ioctl(struct phylink *pl, struct ifreq *ifr, int cmd)
 	return ret;
 }
 EXPORT_SYMBOL_GPL(phylink_mii_ioctl);
+
+/**
+ * phylink_speed_down() - set the non-SFP PHY to lowest speed supported by both
+ *   link partners
+ * @pl: a pointer to a &struct phylink returned from phylink_create()
+ * @sync: perform action synchronously
+ *
+ * If we have a PHY that is not part of a SFP module, then set the speed
+ * as described in the phy_speed_down() function. Please see this function
+ * for a description of the @sync parameter.
+ *
+ * Returns zero if there is no PHY, otherwise as per phy_speed_down().
+ */
+int phylink_speed_down(struct phylink *pl, bool sync)
+{
+	int ret = 0;
+
+	ASSERT_RTNL();
+
+	if (!pl->sfp_bus && pl->phydev)
+		ret = phy_speed_down(pl->phydev, sync);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(phylink_speed_down);
+
+/**
+ * phylink_speed_up() - restore the advertised speeds prior to the call to
+ *   phylink_speed_down()
+ * @pl: a pointer to a &struct phylink returned from phylink_create()
+ *
+ * If we have a PHY that is not part of a SFP module, then restore the
+ * PHY speeds as per phy_speed_up().
+ *
+ * Returns zero if there is no PHY, otherwise as per phy_speed_up().
+ */
+int phylink_speed_up(struct phylink *pl)
+{
+	int ret = 0;
+
+	ASSERT_RTNL();
+
+	if (!pl->sfp_bus && pl->phydev)
+		ret = phy_speed_up(pl->phydev);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(phylink_speed_up);
 
 static void phylink_sfp_attach(void *upstream, struct sfp_bus *bus)
 {
