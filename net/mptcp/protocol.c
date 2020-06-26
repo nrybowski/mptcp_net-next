@@ -119,6 +119,10 @@ static struct socket *__mptcp_socket_create(struct mptcp_sock *msk, int state)
 	list_add(&subflow->node, &msk->conn_list);
 	subflow->request_mptcp = 1;
 
+	/* accept() will wait on first subflow sk_wq, and we always wakes up
+	 * via msk->sk_socket */
+	RCU_INIT_POINTER(msk->first->sk_wq, &sk->sk_socket->wq);
+
 set_state:
 	if (state != MPTCP_SAME_STATE)
 		inet_sk_state_store(sk, state);
