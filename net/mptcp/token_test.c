@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0
 #include <kunit/test.h>
 
 #include "protocol.h"
@@ -65,9 +66,9 @@ static void mptcp_token_test_msk_basic(struct kunit *test)
 	struct mptcp_sock *null_msk = NULL;
 	struct sock *sk;
 
-	icsk->icsk_ulp_data = ctx;
-	ctx->conn = (struct sock*)msk;
-	sk = (struct sock*)msk;
+	rcu_assign_pointer(icsk->icsk_ulp_data, ctx);
+	ctx->conn = (struct sock *)msk;
+	sk = (struct sock *)msk;
 
 	KUNIT_ASSERT_EQ(test, 0,
 			mptcp_token_new_connect((struct sock *)icsk));
@@ -106,7 +107,7 @@ static void mptcp_token_test_destroyed(struct kunit *test)
 	struct mptcp_sock *null_msk = NULL;
 	struct sock *sk;
 
-	sk = (struct sock*)msk;
+	sk = (struct sock *)msk;
 
 	KUNIT_ASSERT_EQ(test, 0,
 			mptcp_token_new_request((struct request_sock *)req));
