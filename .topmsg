@@ -1,5 +1,5 @@
 From: Amir Goldstein <amir73il@gmail.com>
-Subject: [PATCH] fsnotify: suppress access/modify events on stream files
+Subject: [PATCH] DO-NOT-MERGE: fsnotify: suppress access/modify events on stream files
 
 We wanted to suppress all fsnotify events on anonymous pipes/sockets,
 but chromioum seems to be relying on some of those events.
