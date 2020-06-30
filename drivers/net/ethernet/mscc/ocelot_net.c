@@ -74,9 +74,7 @@ static int ocelot_setup_tc_cls_matchall(struct ocelot_port_private *priv,
 		}
 
 		pol.rate = (u32)div_u64(action->police.rate_bytes_ps, 1000) * 8;
-		pol.burst = (u32)div_u64(action->police.rate_bytes_ps *
-					 PSCHED_NS2TICKS(action->police.burst),
-					 PSCHED_TICKS_PER_SEC);
+		pol.burst = action->police.burst;
 
 		err = ocelot_port_policer_add(ocelot, port, &pol);
 		if (err) {
@@ -953,7 +951,6 @@ notify:
 struct notifier_block ocelot_netdevice_nb __read_mostly = {
 	.notifier_call = ocelot_netdevice_event,
 };
-EXPORT_SYMBOL(ocelot_netdevice_nb);
 
 static int ocelot_switchdev_event(struct notifier_block *unused,
 				  unsigned long event, void *ptr)
@@ -975,7 +972,6 @@ static int ocelot_switchdev_event(struct notifier_block *unused,
 struct notifier_block ocelot_switchdev_nb __read_mostly = {
 	.notifier_call = ocelot_switchdev_event,
 };
-EXPORT_SYMBOL(ocelot_switchdev_nb);
 
 static int ocelot_switchdev_blocking_event(struct notifier_block *unused,
 					   unsigned long event, void *ptr)
@@ -1008,7 +1004,6 @@ static int ocelot_switchdev_blocking_event(struct notifier_block *unused,
 struct notifier_block ocelot_switchdev_blocking_nb __read_mostly = {
 	.notifier_call = ocelot_switchdev_blocking_event,
 };
-EXPORT_SYMBOL(ocelot_switchdev_blocking_nb);
 
 int ocelot_probe_port(struct ocelot *ocelot, u8 port,
 		      void __iomem *regs,
@@ -1054,4 +1049,3 @@ int ocelot_probe_port(struct ocelot *ocelot, u8 port,
 
 	return err;
 }
-EXPORT_SYMBOL(ocelot_probe_port);
