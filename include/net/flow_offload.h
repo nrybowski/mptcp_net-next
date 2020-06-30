@@ -233,7 +233,7 @@ struct flow_action_entry {
 		} sample;
 		struct {				/* FLOW_ACTION_POLICE */
 			u32			index;
-			s64			burst;
+			u32			burst;
 			u64			rate_bytes_ps;
 			u32			mtu;
 		} police;
@@ -424,6 +424,8 @@ enum flow_block_binder_type {
 	FLOW_BLOCK_BINDER_TYPE_UNSPEC,
 	FLOW_BLOCK_BINDER_TYPE_CLSACT_INGRESS,
 	FLOW_BLOCK_BINDER_TYPE_CLSACT_EGRESS,
+	FLOW_BLOCK_BINDER_TYPE_RED_EARLY_DROP,
+	FLOW_BLOCK_BINDER_TYPE_RED_MARK,
 };
 
 struct flow_block {

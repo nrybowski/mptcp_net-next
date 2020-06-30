@@ -492,8 +492,7 @@ static inline void mptcp_do_fallback(struct sock *sk)
 	__mptcp_do_fallback(msk);
 }
 
-#define pr_fallback(a) do { pr_debug("%s:fallback to TCP (msk=%p)",\
-				      __FUNCTION__, a); } while (0)
+#define pr_fallback(a) pr_debug("%s:fallback to TCP (msk=%p)", __func__, a)
 
 static inline bool subflow_simultaneous_connect(struct sock *sk)
 {
