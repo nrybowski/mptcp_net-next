@@ -104,7 +104,8 @@ static int __mptcp_socket_create(struct mptcp_sock *msk)
 	subflow->request_mptcp = 1;
 
 	/* accept() will wait on first subflow sk_wq, and we always wakes up
-	 * via msk->sk_socket */
+	 * via msk->sk_socket
+	 */
 	RCU_INIT_POINTER(msk->first->sk_wq, &sk->sk_socket->wq);
 
 	return 0;
@@ -2069,7 +2070,6 @@ unlock_fail:
 	release_sock(sock->sk);
 	return -EINVAL;
 }
-
 
 static __poll_t mptcp_check_readable(struct mptcp_sock *msk)
 {
