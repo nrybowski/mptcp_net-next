@@ -76,42 +76,26 @@ static bool mptcp_is_tcpsk(struct sock *sk)
 	return false;
 }
 
-static struct socket *__mptcp_tcp_fallback(struct mptcp_sock *msk)
+static struct sock *__mptcp_tcp_fallback(struct mptcp_sock *msk)
 {
 	sock_owned_by_me((const struct sock *)msk);
 
 	if (likely(!__mptcp_check_fallback(msk)))
 		return NULL;
 
-	return msk->subflow;
+	return msk->first;
 }
 
-static bool __mptcp_can_create_subflow(const struct mptcp_sock *msk)
-{
-	return !msk->first;
-}
-
-static struct socket *__mptcp_socket_create(struct mptcp_sock *msk, int state)
+static int __mptcp_socket_create(struct mptcp_sock *msk)
 {
 	struct mptcp_subflow_context *subflow;
 	struct sock *sk = (struct sock *)msk;
 	struct socket *ssock;
 	int err;
 
-	ssock = __mptcp_tcp_fallback(msk);
-	if (unlikely(ssock))
-		return ssock;
-
-	ssock = __mptcp_nmpc_socket(msk);
-	if (ssock)
-		goto set_state;
-
-	if (!__mptcp_can_create_subflow(msk))
-		return ERR_PTR(-EINVAL);
-
 	err = mptcp_subflow_create_socket(sk, &ssock);
 	if (err)
-		return ERR_PTR(err);
+		return err;
 
 	msk->first = ssock->sk;
 	msk->subflow = ssock;
@@ -120,13 +104,11 @@ static struct socket *__mptcp_socket_create(struct mptcp_sock *msk, int state)
 	subflow->request_mptcp = 1;
 
 	/* accept() will wait on first subflow sk_wq, and we always wakes up
-	 * via msk->sk_socket */
+	 * via msk->sk_socket
+	 */
 	RCU_INIT_POINTER(msk->first->sk_wq, &sk->sk_socket->wq);
 
-set_state:
-	if (state != MPTCP_SAME_STATE)
-		inet_sk_state_store(sk, state);
-	return ssock;
+	return 0;
 }
 
 static void __mptcp_move_skb(struct mptcp_sock *msk, struct sock *ssk,
@@ -1254,6 +1236,10 @@ static int mptcp_init_sock(struct sock *sk)
 	if (ret)
 		return ret;
 
+	ret = __mptcp_socket_create(mptcp_sk(sk));
+	if (ret)
+		return ret;
+
 	sk_sockets_allocated_inc(sk);
 	sk->sk_sndbuf = sock_net(sk)->ipv4.sysctl_tcp_wmem[2];
 
@@ -1512,7 +1498,7 @@ static int mptcp_setsockopt(struct sock *sk, int level, int optname,
 			    char __user *optval, unsigned int optlen)
 {
 	struct mptcp_sock *msk = mptcp_sk(sk);
-	struct socket *ssock;
+	struct sock *ssk;
 
 	pr_debug("msk=%p", msk);
 
@@ -1523,11 +1509,10 @@ static int mptcp_setsockopt(struct sock *sk, int level, int optname,
 	 * to the one remaining subflow.
 	 */
 	lock_sock(sk);
-	ssock = __mptcp_tcp_fallback(msk);
+	ssk = __mptcp_tcp_fallback(msk);
 	release_sock(sk);
-	if (ssock)
-		return tcp_setsockopt(ssock->sk, level, optname, optval,
-				      optlen);
+	if (ssk)
+		return tcp_setsockopt(ssk, level, optname, optval, optlen);
 
 	return -EOPNOTSUPP;
 }
@@ -1536,7 +1521,7 @@ static int mptcp_getsockopt(struct sock *sk, int level, int optname,
 			    char __user *optval, int __user *option)
 {
 	struct mptcp_sock *msk = mptcp_sk(sk);
-	struct socket *ssock;
+	struct sock *ssk;
 
 	pr_debug("msk=%p", msk);
 
@@ -1547,11 +1532,10 @@ static int mptcp_getsockopt(struct sock *sk, int level, int optname,
 	 * to the one remaining subflow.
 	 */
 	lock_sock(sk);
-	ssock = __mptcp_tcp_fallback(msk);
+	ssk = __mptcp_tcp_fallback(msk);
 	release_sock(sk);
-	if (ssock)
-		return tcp_getsockopt(ssock->sk, level, optname, optval,
-				      option);
+	if (ssk)
+		return tcp_getsockopt(ssk, level, optname, optval, option);
 
 	return -EOPNOTSUPP;
 }
@@ -1743,9 +1727,9 @@ static int mptcp_bind(struct socket *sock, struct sockaddr *uaddr, int addr_len)
 	int err;
 
 	lock_sock(sock->sk);
-	ssock = __mptcp_socket_create(msk, MPTCP_SAME_STATE);
-	if (IS_ERR(ssock)) {
-		err = PTR_ERR(ssock);
+	ssock = __mptcp_nmpc_socket(msk);
+	if (!ssock) {
+		err = -EINVAL;
 		goto unlock;
 	}
 
@@ -1775,13 +1759,14 @@ static int mptcp_stream_connect(struct socket *sock, struct sockaddr *uaddr,
 		goto do_connect;
 	}
 
-	mptcp_token_destroy(msk);
-	ssock = __mptcp_socket_create(msk, TCP_SYN_SENT);
-	if (IS_ERR(ssock)) {
-		err = PTR_ERR(ssock);
+	ssock = __mptcp_nmpc_socket(msk);
+	if (!ssock) {
+		err = -EINVAL;
 		goto unlock;
 	}
 
+	mptcp_token_destroy(msk);
+	inet_sk_state_store(sock->sk, TCP_SYN_SENT);
 	subflow = mptcp_subflow_ctx(ssock->sk);
 #ifdef CONFIG_TCP_MD5SIG
 	/* no MPTCP if MD5SIG is enabled on this socket or we may run out of
@@ -1819,13 +1804,14 @@ static int mptcp_listen(struct socket *sock, int backlog)
 	pr_debug("msk=%p", msk);
 
 	lock_sock(sock->sk);
-	mptcp_token_destroy(msk);
-	ssock = __mptcp_socket_create(msk, TCP_LISTEN);
-	if (IS_ERR(ssock)) {
-		err = PTR_ERR(ssock);
+	ssock = __mptcp_nmpc_socket(msk);
+	if (!ssock) {
+		err = -EINVAL;
 		goto unlock;
 	}
 
+	mptcp_token_destroy(msk);
+	inet_sk_state_store(sock->sk, TCP_LISTEN);
 	sock_set_flag(sock->sk, SOCK_RCU_FREE);
 
 	err = ssock->ops->listen(ssock, backlog);
@@ -1855,6 +1841,7 @@ static int mptcp_stream_accept(struct socket *sock, struct socket *newsock,
 	if (!ssock)
 		goto unlock_fail;
 
+	clear_bit(MPTCP_DATA_READY, &msk->flags);
 	sock_hold(ssock->sk);
 	release_sock(sock->sk);
 
@@ -1875,6 +1862,8 @@ static int mptcp_stream_accept(struct socket *sock, struct socket *newsock,
 		}
 	}
 
+	if (inet_csk_listen_poll(ssock->sk))
+		set_bit(MPTCP_DATA_READY, &msk->flags);
 	sock_put(ssock->sk);
 	return err;
 
@@ -1883,21 +1872,33 @@ unlock_fail:
 	return -EINVAL;
 }
 
+static __poll_t mptcp_check_readable(struct mptcp_sock *msk)
+{
+	return test_bit(MPTCP_DATA_READY, &msk->flags) ? EPOLLIN | EPOLLRDNORM :
+	       0;
+}
+
 static __poll_t mptcp_poll(struct file *file, struct socket *sock,
 			   struct poll_table_struct *wait)
 {
 	struct sock *sk = sock->sk;
 	struct mptcp_sock *msk;
 	__poll_t mask = 0;
+	int state;
 
 	msk = mptcp_sk(sk);
 	sock_poll_wait(file, sock, wait);
 
-	if (test_bit(MPTCP_DATA_READY, &msk->flags))
-		mask = EPOLLIN | EPOLLRDNORM;
-	if (sk_stream_is_writeable(sk) &&
-	    test_bit(MPTCP_SEND_SPACE, &msk->flags))
-		mask |= EPOLLOUT | EPOLLWRNORM;
+	state = inet_sk_state_load(sk);
+	if (state == TCP_LISTEN)
+		return mptcp_check_readable(msk);
+
+	if (state != TCP_SYN_SENT && state != TCP_SYN_RECV) {
+		mask |= mptcp_check_readable(msk);
+		if (sk_stream_is_writeable(sk) &&
+		    test_bit(MPTCP_SEND_SPACE, &msk->flags))
+			mask |= EPOLLOUT | EPOLLWRNORM;
+	}
 	if (sk->sk_shutdown & RCV_SHUTDOWN)
 		mask |= EPOLLIN | EPOLLRDNORM | EPOLLRDHUP;
 
