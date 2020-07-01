@@ -1120,6 +1120,7 @@ static void subflow_state_change(struct sock *sk)
 
 	if (subflow_simultaneous_connect(sk)) {
 		mptcp_do_fallback(sk);
+		mptcp_rcv_space_init(mptcp_sk(parent), sk);
 		pr_fallback(mptcp_sk(parent));
 		subflow->conn_finished = 1;
 		if (inet_sk_state_load(parent) == TCP_SYN_SENT) {
