@@ -963,7 +963,7 @@ static void mptcp_rcv_space_adjust(struct mptcp_sock *msk, int copied)
 
 		rcvwin = ((u64)msk->rcvq_space.copied << 1) + 16 * advmss;
 
-		grow  = rcvwin *(msk->rcvq_space.copied - msk->rcvq_space.space);
+		grow = rcvwin * (msk->rcvq_space.copied - msk->rcvq_space.space);
 
 		do_div(grow, msk->rcvq_space.space);
 		rcvwin += (grow << 1);
