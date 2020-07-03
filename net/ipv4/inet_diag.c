@@ -52,7 +52,7 @@ static DEFINE_MUTEX(inet_diag_table_mutex);
 
 static const struct inet_diag_handler *inet_diag_lock_handler(int proto)
 {
-	if (proto >= IPPROTO_MAX)
+	if (proto < 0 || proto >= IPPROTO_MAX)
 		return ERR_PTR(-ENOENT);
 
 	if (!inet_diag_table[proto])
