@@ -4,5 +4,5 @@ Subject: [PATCH] selftests/mptcp: add diag interface tests
 basic functional test, triggering the msk diag interface
 code. Require appropriate iproute2 support, skip elsewhere.
 
-Signed-off-by: Paolo Abeni <pabeni@redhat.com>
 Reviewed-by: Mat Martineau <mathew.j.martineau@linux.intel.com>
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
