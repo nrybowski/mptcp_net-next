@@ -1,4 +1,8 @@
-From: Matthieu Baerts <matthieu.baerts@tessares.net>
-Subject: [PATCH] t/mptcp-add-MPTCP-socket-diag-interface
+From: Paolo Abeni <pabeni@redhat.com>
+Subject: [PATCH] mptcp: add MPTCP socket diag interface
 
-Signed-off-by: Matthieu Baerts <matthieu.baerts@tessares.net>
+exposes basic inet socket attribute, plus some MPTCP socket
+fields comprising PM status and MPTCP-level sequence numbers.
+
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+Reviewed-by: Mat Martineau <mathew.j.martineau@linux.intel.com>
