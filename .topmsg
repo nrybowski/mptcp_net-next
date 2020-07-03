@@ -20,4 +20,6 @@ will not be used by protocol using the extended attribute.
 
 Suggested-by: David S. Miller <davem@davemloft.net>
 Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+Co-developed-by: Christoph Paasch <cpaasch@apple.com>
+Signed-off-by: Christoph Paasch <cpaasch@apple.com>
 Reviewed-by: Mat Martineau <mathew.j.martineau@linux.intel.com>
