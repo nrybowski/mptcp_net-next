@@ -1,0 +1,4 @@
+From: Matthieu Baerts <matthieu.baerts@tessares.net>
+Subject: [PATCH] t/inet_diag-support-for-wider-protocol-numbers
+
+Signed-off-by: Matthieu Baerts <matthieu.baerts@tessares.net>
