@@ -1,4 +1,8 @@
-From: Matthieu Baerts <matthieu.baerts@tessares.net>
-Subject: [PATCH] t/selftests-mptcp-add-diag-interface-tests
+From: Paolo Abeni <pabeni@redhat.com>
+Subject: [PATCH] selftests/mptcp: add diag interface tests
 
-Signed-off-by: Matthieu Baerts <matthieu.baerts@tessares.net>
+basic functional test, triggering the msk diag interface
+code. Require appropriate iproute2 support, skip elsewhere.
+
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+Reviewed-by: Mat Martineau <mathew.j.martineau@linux.intel.com>
