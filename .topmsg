@@ -8,5 +8,5 @@ network namespace with a quite standard iterator semantic.
 It will be used by the next patch, but keep the API generic,
 as we plan to use this later for PM's sake.
 
-Signed-off-by: Paolo Abeni <pabeni@redhat.com>
 Reviewed-by: Mat Martineau <mathew.j.martineau@linux.intel.com>
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
