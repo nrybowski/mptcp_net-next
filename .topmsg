@@ -1,0 +1,12 @@
+From: Amir Goldstein <amir73il@gmail.com>
+Subject: [PATCH] DO-NOT-MERGE: fsnotify: suppress access/modify events on stream files
+
+We wanted to suppress all fsnotify events on anonymous pipes/sockets,
+but chromioum seems to be relying on some of those events.
+
+Let's try to suppress only access/modify events on stream files.
+
+Reported-by: Maxim Levitsky <mlevitsk@redhat.com>
+Link: https://lore.kernel.org/lkml/7b4aa1e985007c6d582fffe5e8435f8153e28e0f.camel@redhat.com
+Fixes: e9c15badbb7b ("fs: Do not check if there is a fsnotify watcher on pseudo inodes")
+Signed-off-by: Amir Goldstein <amir73il@gmail.com>
