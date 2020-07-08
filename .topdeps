@@ -1,2 +1,1 @@
-t/mptcp-fallback-in-case-of-simultaneous-connect
 t/mptcp-introduce-token-KUNIT-self-tests
