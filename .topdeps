@@ -1,2 +1,1 @@
-t/mptcp-check-for-plain-TCP-sock-at-accept-time
 t/mptcp-fallback-in-case-of-simultaneous-connect
