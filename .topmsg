@@ -1,8 +1,0 @@
-From: Florian Westphal <fw@strlen.de>
-Subject: [PATCH] mptcp: use mptcp worker for path management
-
-We can re-use the existing work queue to handle path management
-instead of a dedicated work queue.  Just move pm_worker to protocol.c,
-call it from the mptcp worker and get rid of the msk lock (already held).
-
-Signed-off-by: Florian Westphal <fw@strlen.de>
