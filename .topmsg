@@ -1,0 +1,6 @@
+From: Paolo Abeni <pabeni@redhat.com>
+Subject: [PATCH] mptcp: create first subflow at msk creation time
+
+This cleans the code a bit and makes the behavior more consistent.
+
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
