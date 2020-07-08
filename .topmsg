@@ -1,7 +1,0 @@
-From: Paolo Abeni <pabeni@redhat.com>
-Subject: [PATCH] mptcp: check for plain TCP sock at accept time
-
-This cleanup the code a bit and avoid corrupted states
-on weird syscall sequence (accept(), connect()).
-
-Signed-off-by: Paolo Abeni <pabeni@redhat.com>
