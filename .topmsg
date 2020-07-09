@@ -1,6 +1,5 @@
 From: Mel Gorman <mgorman@techsingularity.net>
-Subject: [PATCH] Revert "fs: Do not check if there is a fsnotify watcher on
- pseudo inodes"
+Subject: [PATCH] DO-NOT-MERGE: Revert "fs: Do not check if there is a fsnotify watcher on pseudo inodes"
 
 This reverts commit e9c15badbb7b ("fs: Do not check if there is a
 fsnotify watcher on pseudo inodes"). The commit intended to eliminate
