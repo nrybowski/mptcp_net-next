@@ -119,4 +119,3 @@ chk_msk_nr $((NR_CLIENTS*2)) "many msk socket present"
 flush_pids
 
 exit $ret
-
