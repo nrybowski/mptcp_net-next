@@ -52,8 +52,10 @@ static DEFINE_MUTEX(inet_diag_table_mutex);
 
 static const struct inet_diag_handler *inet_diag_lock_handler(int proto)
 {
-	if (proto < 0 || proto >= IPPROTO_MAX)
+	if (proto < 0 || proto >= IPPROTO_MAX) {
+		mutex_lock(&inet_diag_table_mutex);
 		return ERR_PTR(-ENOENT);
+	}
 
 	if (!inet_diag_table[proto])
 		sock_load_diag_module(AF_INET, proto);
