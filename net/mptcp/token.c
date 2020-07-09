@@ -238,6 +238,7 @@ found:
 	rcu_read_unlock();
 	return msk;
 }
+EXPORT_SYMBOL_GPL(mptcp_token_get_sock);
 
 /**
  * mptcp_token_iter_next - iterate over the token container from given pos
@@ -371,7 +372,6 @@ void __init mptcp_token_init(void)
 EXPORT_SYMBOL_GPL(mptcp_token_new_request);
 EXPORT_SYMBOL_GPL(mptcp_token_new_connect);
 EXPORT_SYMBOL_GPL(mptcp_token_accept);
-EXPORT_SYMBOL_GPL(mptcp_token_get_sock);
 EXPORT_SYMBOL_GPL(mptcp_token_destroy_request);
 EXPORT_SYMBOL_GPL(mptcp_token_destroy);
 #endif
