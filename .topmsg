@@ -1,4 +1,11 @@
-From: Matthieu Baerts <matthieu.baerts@tessares.net>
-Subject: [PATCH] t/subflow-use-rsk_ops-send_reset
+From: Paolo Abeni <pabeni@redhat.com>
+Subject: [PATCH] subflow: use rsk_ops->send_reset()
 
-Signed-off-by: Matthieu Baerts <matthieu.baerts@tessares.net>
+tcp_send_active_reset() is more prone to transient errors
+(memory allocation or xmit queue full): in stress conditions
+the kernel may drop the egress packet, and the client will be
+stuck.
+
+Reviewed-by: Mat Martineau <mathew.j.martineau@linux.intel.com>
+Tested-by: Christoph Paasch <cpaasch@apple.com>
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
