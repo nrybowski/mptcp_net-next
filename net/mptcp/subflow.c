@@ -53,6 +53,12 @@ static void subflow_generate_hmac(u64 key1, u64 key2, u32 nonce1, u32 nonce2,
 	mptcp_crypto_hmac_sha(key1, key2, msg, 8, hmac);
 }
 
+static bool mptcp_can_accept_new_subflow(const struct mptcp_sock *msk)
+{
+	return inet_sk_state_load((struct sock *)msk) == TCP_ESTABLISHED &&
+	       READ_ONCE(msk->pm.accept_subflow);
+}
+
 /* validate received token and create truncated hmac and nonce for SYN-ACK */
 static struct mptcp_sock *subflow_token_join_request(struct request_sock *req,
 						     const struct sk_buff *skb)
@@ -200,49 +206,40 @@ static void subflow_finish_connect(struct sock *sk, const struct sk_buff *skb)
 	if (subflow->conn_finished)
 		return;
 
+	subflow->rel_write_seq = 1;
 	subflow->conn_finished = 1;
 	subflow->ssn_offset = TCP_SKB_CB(skb)->seq;
 	pr_debug("subflow=%p synack seq=%x", subflow, subflow->ssn_offset);
 
 	mptcp_get_options(skb, &mp_opt);
-	if (subflow->request_mptcp && mp_opt.mp_capable) {
+	if (subflow->request_mptcp) {
+		if (!mp_opt.mp_capable) {
+			MPTCP_INC_STATS(sock_net(sk),
+					MPTCP_MIB_MPCAPABLEACTIVEFALLBACK);
+			mptcp_do_fallback(sk);
+			pr_fallback(mptcp_sk(subflow->conn));
+			goto fallback;
+		}
+
 		subflow->mp_capable = 1;
 		subflow->can_ack = 1;
 		subflow->remote_key = mp_opt.sndr_key;
 		pr_debug("subflow=%p, remote_key=%llu", subflow,
 			 subflow->remote_key);
-	} else if (subflow->request_join && mp_opt.mp_join) {
-		subflow->mp_join = 1;
+		mptcp_finish_connect(sk);
+	} else if (subflow->request_join) {
+		u8 hmac[SHA256_DIGEST_SIZE];
+
+		if (!mp_opt.mp_join)
+			goto do_reset;
+
 		subflow->thmac = mp_opt.thmac;
 		subflow->remote_nonce = mp_opt.nonce;
 		pr_debug("subflow=%p, thmac=%llu, remote_nonce=%u", subflow,
 			 subflow->thmac, subflow->remote_nonce);
-	} else {
-		if (subflow->request_mptcp)
-			MPTCP_INC_STATS(sock_net(sk),
-					MPTCP_MIB_MPCAPABLEACTIVEFALLBACK);
-		mptcp_do_fallback(sk);
-		pr_fallback(mptcp_sk(subflow->conn));
-	}
 
-	if (mptcp_check_fallback(sk)) {
-		mptcp_rcv_space_init(mptcp_sk(parent), sk);
-		return;
-	}
-
-	if (subflow->mp_capable) {
-		pr_debug("subflow=%p, remote_key=%llu", mptcp_subflow_ctx(sk),
-			 subflow->remote_key);
-		mptcp_finish_connect(sk);
-	} else if (subflow->mp_join) {
-		u8 hmac[SHA256_DIGEST_SIZE];
-
-		pr_debug("subflow=%p, thmac=%llu, remote_nonce=%u",
-			 subflow, subflow->thmac,
-			 subflow->remote_nonce);
 		if (!subflow_thmac_valid(subflow)) {
 			MPTCP_INC_STATS(sock_net(sk), MPTCP_MIB_JOINACKMAC);
-			subflow->mp_join = 0;
 			goto do_reset;
 		}
 
@@ -250,18 +247,22 @@ static void subflow_finish_connect(struct sock *sk, const struct sk_buff *skb)
 				      subflow->local_nonce,
 				      subflow->remote_nonce,
 				      hmac);
-
 		memcpy(subflow->hmac, hmac, MPTCPOPT_HMAC_LEN);
 
 		if (!mptcp_finish_join(sk))
 			goto do_reset;
 
+		subflow->mp_join = 1;
 		MPTCP_INC_STATS(sock_net(sk), MPTCP_MIB_JOINSYNACKRX);
-	} else {
-do_reset:
-		tcp_send_active_reset(sk, GFP_ATOMIC);
-		tcp_done(sk);
+	} else if (mptcp_check_fallback(sk)) {
+fallback:
+		mptcp_rcv_space_init(mptcp_sk(parent), sk);
 	}
+	return;
+
+do_reset:
+	tcp_send_active_reset(sk, GFP_ATOMIC);
+	tcp_done(sk);
 }
 
 static struct request_sock_ops subflow_request_sock_ops;
@@ -386,6 +387,19 @@ static void subflow_drop_ctx(struct sock *ssk)
 	kfree_rcu(ctx, rcu);
 }
 
+void mptcp_subflow_fully_established(struct mptcp_subflow_context *subflow,
+				     struct mptcp_options_received *mp_opt)
+{
+	struct mptcp_sock *msk = mptcp_sk(subflow->conn);
+
+	subflow->remote_key = mp_opt->sndr_key;
+	subflow->fully_established = 1;
+	subflow->can_ack = 1;
+
+	inet_sk_state_store(subflow->conn, TCP_ESTABLISHED);
+	mptcp_pm_new_connection(msk, 1);
+}
+
 static struct sock *subflow_syn_recv_sock(const struct sock *sk,
 					  struct sk_buff *skb,
 					  struct request_sock *req,
@@ -409,7 +423,7 @@ static struct sock *subflow_syn_recv_sock(const struct sock *sk,
 
 	/* hopefully temporary handling for MP_JOIN+syncookie */
 	subflow_req = mptcp_subflow_rsk(req);
-	fallback_is_fatal = subflow_req->mp_join;
+	fallback_is_fatal = tcp_rsk(req)->is_mptcp && subflow_req->mp_join;
 	fallback = !tcp_rsk(req)->is_mptcp;
 	if (fallback)
 		goto create_child;
@@ -437,6 +451,7 @@ create_msk:
 	} else if (subflow_req->mp_join) {
 		mptcp_get_options(skb, &mp_opt);
 		if (!mp_opt.mp_join ||
+		    !mptcp_can_accept_new_subflow(subflow_req->msk) ||
 		    !subflow_hmac_valid(req, &mp_opt)) {
 			SUBFLOW_REQ_INC_STATS(req, MPTCP_MIB_JOINACKMAC);
 			fallback = true;
@@ -469,7 +484,6 @@ create_child:
 			 * created mptcp socket
 			 */
 			new_msk->sk_destruct = mptcp_sock_destruct;
-			mptcp_pm_new_connection(mptcp_sk(new_msk), 1);
 			mptcp_token_accept(subflow_req, mptcp_sk(new_msk));
 			ctx->conn = new_msk;
 			new_msk = NULL;
@@ -477,9 +491,8 @@ create_child:
 			/* with OoO packets we can reach here without ingress
 			 * mpc option
 			 */
-			ctx->remote_key = mp_opt.sndr_key;
-			ctx->fully_established = mp_opt.mp_capable;
-			ctx->can_ack = mp_opt.mp_capable;
+			if (mp_opt.mp_capable)
+				mptcp_subflow_fully_established(ctx, &mp_opt);
 		} else if (ctx->mp_join) {
 			struct mptcp_sock *owner;
 
@@ -514,9 +527,9 @@ out:
 dispose_child:
 	subflow_drop_ctx(child);
 	tcp_rsk(req)->drop_req = true;
-	tcp_send_active_reset(child, GFP_ATOMIC);
 	inet_csk_prepare_for_destroy_sock(child);
 	tcp_done(child);
+	req->rsk_ops->send_reset(sk, skb);
 
 	/* The last child reference will be released by the caller */
 	return child;
