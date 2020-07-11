@@ -1,4 +1,11 @@
-From: Matthieu Baerts <matthieu.baerts@tessares.net>
-Subject: [PATCH] t/mptcp-cleanup-subflow_finish_connect
+From: Paolo Abeni <pabeni@redhat.com>
+Subject: [PATCH] mptcp: cleanup subflow_finish_connect()
 
-Signed-off-by: Matthieu Baerts <matthieu.baerts@tessares.net>
+The mentioned function has several unneeded branches,
+handle each case - MP_CAPABLE, MP_JOIN, fallback -
+under a single conditional and drop quite a bit of
+duplicate code.
+
+Reviewed-by: Mat Martineau <mathew.j.martineau@linux.intel.com>
+Tested-by: Christoph Paasch <cpaasch@apple.com>
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
