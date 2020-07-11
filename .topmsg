@@ -1,4 +1,9 @@
-From: Matthieu Baerts <matthieu.baerts@tessares.net>
-Subject: [PATCH] t/subflow-introduce-and-use-mptcp_can_accept_new_subflow
+From: Paolo Abeni <pabeni@redhat.com>
+Subject: [PATCH] subflow: introduce and use mptcp_can_accept_new_subflow()
 
-Signed-off-by: Matthieu Baerts <matthieu.baerts@tessares.net>
+So that we can easily perform some basic PM-related
+adimission checks before creating the child socket.
+
+Reviewed-by: Mat Martineau <mathew.j.martineau@linux.intel.com>
+Tested-by: Christoph Paasch <cpaasch@apple.com>
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
