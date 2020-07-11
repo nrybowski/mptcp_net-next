@@ -1,4 +1,18 @@
-From: Matthieu Baerts <matthieu.baerts@tessares.net>
-Subject: [PATCH] t/mptcp-make-msk-established-at-remote-key-reception-time
+From: Paolo Abeni <pabeni@redhat.com>
+Subject: [PATCH] mptcp: make msk established at remote key reception time
 
-Signed-off-by: Matthieu Baerts <matthieu.baerts@tessares.net>
+Currently accepted msk sockets become established only after
+accept() returns the new sk to user-space.
+
+As MP_JOIN request are refused as per RFC spec on non
+established socket, the above causes mp_join self-tests
+instabilities.
+
+This change make the msk entering the established status
+as soon as it receives the peer's key. As that even
+may happen in different places, factor out an helper to
+handle remote key reception.
+
+Reviewed-by: Mat Martineau <mathew.j.martineau@linux.intel.com>
+Tested-by: Christoph Paasch <cpaasch@apple.com>
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
