@@ -1,4 +1,13 @@
-From: Matthieu Baerts <matthieu.baerts@tessares.net>
-Subject: [PATCH] t/mptcp-avoid-data-corruption-on-reinsert
+From: Paolo Abeni <pabeni@redhat.com>
+Subject: [PATCH] mptcp: avoid data corruption on reinsert
 
-Signed-off-by: Matthieu Baerts <matthieu.baerts@tessares.net>
+When updating a partially acked data fragment, we
+actually corrupt it. This is irrelevant till we send
+data on a single subflow, as retransmitted data, if
+any are discarded by the peer as duplicate, but it
+will cause data corruption as soon as we will start
+creating non backup subflows.
+
+Reviewed-by: Mat Martineau <mathew.j.martineau@linux.intel.com>
+Tested-by: Christoph Paasch <cpaasch@apple.com>
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
