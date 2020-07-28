@@ -1130,8 +1130,19 @@ failed:
 	return err;
 }
 
+static void mptcp_mem_cgroup_sk_clone(struct sock *parent, struct sock *child)
+{
+#ifdef CONFIG_MEMCG
+	struct mem_cgroup *memcg = parent->sk_memcg;
+
+	if (memcg && css_tryget(&memcg->css))
+		child->sk_memcg = memcg;
+#endif
+}
+
 int mptcp_subflow_create_socket(struct sock *sk, struct socket **new_sock)
 {
+	struct sock_cgroup_data *parent_skcd = &sk->sk_cgrp_data, *child_skcd;
 	struct mptcp_subflow_context *subflow;
 	struct net *net = sock_net(sk);
 	struct socket *sf;
@@ -1143,6 +1154,19 @@ int mptcp_subflow_create_socket(struct sock *sk, struct socket **new_sock)
 		return err;
 
 	lock_sock(sf->sk);
+
+	/* the newly created socket has to be in the same cgroup than its parent
+	 */
+	child_skcd = &sf->sk->sk_cgrp_data;
+	if (cgroup_id(sock_cgroup_ptr(parent_skcd)) !=
+	    cgroup_id(sock_cgroup_ptr(child_skcd))) {
+		mem_cgroup_sk_free(sf->sk);
+		mptcp_mem_cgroup_sk_clone(sk, sf->sk);
+
+		cgroup_sk_free(child_skcd);
+		*child_skcd = *parent_skcd;
+		cgroup_sk_clone(child_skcd);
+	}
 
 	/* kernel sockets do not by default acquire net ref, but TCP timer
 	 * needs it.
