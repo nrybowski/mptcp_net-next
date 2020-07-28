@@ -5742,7 +5742,7 @@ bool bpf_tcp_sock_is_valid_access(int off, int size, enum bpf_access_type type,
 				  struct bpf_insn_access_aux *info)
 {
 	if (off < 0 || off >= offsetofend(struct bpf_tcp_sock,
-					  icsk_retransmits))
+					  is_mptcp))
 		return false;
 
 	if (off % size != 0)
@@ -5876,6 +5876,11 @@ u32 bpf_tcp_sock_convert_ctx_access(enum bpf_access_type type,
 	case offsetof(struct bpf_tcp_sock, icsk_retransmits):
 		BPF_INET_SOCK_GET_COMMON(icsk_retransmits);
 		break;
+	#if IS_ENABLED(CONFIG_MPTCP)
+	case offsetof(struct bpf_tcp_sock, is_mptcp):
+		BPF_TCP_SOCK_GET_COMMON(is_mptcp);
+		break;
+	#endif
 	}
 
 	return insn - insn_buf;
