@@ -57,6 +57,122 @@ struct mptcp_out_options {
 #endif
 };
 
+struct mptcp_addr_info {
+	sa_family_t		family;
+	__be16			port;
+	u8			id;
+	union {
+		struct in_addr addr;
+#if IS_ENABLED(CONFIG_MPTCP_IPV6)
+		struct in6_addr addr6;
+#endif
+	};
+};
+
+struct mptcp_pm_data {
+	struct mptcp_addr_info local;
+	struct mptcp_addr_info remote;
+
+	spinlock_t	lock;		/*protects the whole PM data */
+
+	bool		addr_signal;
+	bool		server_side;
+	bool		work_pending;
+	bool		accept_addr;
+	bool		accept_subflow;
+	u8		add_addr_signaled;
+	u8		add_addr_accepted;
+	u8		local_addr_used;
+	u8		subflows;
+	u8		add_addr_signal_max;
+	u8		add_addr_accept_max;
+	u8		local_addr_max;
+	u8		subflows_max;
+	u8		status;
+};
+
+/* MPTCP connection sock */
+struct mptcp_sock {
+	/* inet_connection_sock must be the first member */
+	struct inet_connection_sock sk;
+	u64		local_key;
+	u64		remote_key;
+	u64		write_seq;
+	u64		ack_seq;
+	u64		rcv_data_fin_seq;
+	atomic64_t	snd_una;
+	unsigned long	timer_ival;
+	u32		token;
+	unsigned long	flags;
+	bool		can_ack;
+	bool		fully_established;
+	bool		rcv_data_fin;
+	bool		snd_data_fin_enable;
+	spinlock_t	join_list_lock;
+	struct work_struct work;
+	struct list_head conn_list;
+	struct list_head rtx_queue;
+	struct list_head join_list;
+	struct skb_ext	*cached_ext;	/* for the next sendmsg */
+	struct socket	*subflow; /* outgoing connect/listener/!mp_capable */
+	struct sock	*first;
+	struct mptcp_pm_data	pm;
+	struct {
+		u32	space;	/* bytes copied in last measurement window */
+		u32	copied; /* bytes copied in this measurement window */
+		u64	time;	/* start time of measurement window */
+		u64	rtt_us; /* last maximum rtt of subflows */
+	} rcvq_space;
+};
+
+#define MPTCPOPT_HMAC_LEN	20
+
+/* MPTCP subflow context */
+struct mptcp_subflow_context {
+	struct	list_head node;/* conn_list of subflows */
+	u64	local_key;
+	u64	remote_key;
+	u64	idsn;
+	u64	map_seq;
+	u32	snd_isn;
+	u32	token;
+	u32	rel_write_seq;
+	u32	map_subflow_seq;
+	u32	ssn_offset;
+	u32	map_data_len;
+	u32	request_mptcp : 1,  /* send MP_CAPABLE */
+		request_join : 1,   /* send MP_JOIN */
+		request_bkup : 1,
+		mp_capable : 1,	    /* remote is MPTCP capable */
+		mp_join : 1,	    /* remote is JOINing */
+		fully_established : 1,	    /* path validated */
+		pm_notified : 1,    /* PM hook called for established status */
+		conn_finished : 1,
+		map_valid : 1,
+		mpc_map : 1,
+		backup : 1,
+		data_avail : 1,
+		rx_eof : 1,
+		use_64bit_ack : 1, /* Set when we received a 64-bit DSN */
+		can_ack : 1;	    /* only after processing the remote a key */
+	u32	remote_nonce;
+	u64	thmac;
+	u32	local_nonce;
+	u32	remote_token;
+	u8	hmac[MPTCPOPT_HMAC_LEN];
+	u8	local_id;
+	u8	remote_id;
+
+	struct	sock *tcp_sock;	    /* tcp sk backpointer */
+	struct	sock *conn;	    /* parent mptcp_sock */
+	const	struct inet_connection_sock_af_ops *icsk_af_ops;
+	void	(*tcp_data_ready)(struct sock *sk);
+	void	(*tcp_state_change)(struct sock *sk);
+	void	(*tcp_write_space)(struct sock *sk);
+
+	struct	rcu_head rcu;
+};
+
 #ifdef CONFIG_MPTCP
 extern struct request_sock_ops mptcp_subflow_request_sock_ops;
 
@@ -134,6 +250,16 @@ void mptcp_seq_show(struct seq_file *seq);
 int mptcp_subflow_init_cookie_req(struct request_sock *req,
 				  const struct sock *sk_listener,
 				  struct sk_buff *skb);
+
+static inline struct mptcp_subflow_context *
+mptcp_subflow_ctx(const struct sock *sk)
+{
+	struct inet_connection_sock *icsk = inet_csk(sk);
+
+	/* Use RCU on icsk_ulp_data only for sock diag code */
+	return (__force struct mptcp_subflow_context *)icsk->icsk_ulp_data;
+}
+
 #else
 
 static inline void mptcp_init(void)
@@ -209,6 +335,12 @@ static inline int mptcp_subflow_init_cookie_req(struct request_sock *req,
 						struct sk_buff *skb)
 {
 	return 0; /* TCP fallback */
+}
+
+static inline struct mptcp_subflow_context *
+mptcp_subflow_ctx(const struct sock *sk)
+{
+	return NULL;
 }
 #endif /* CONFIG_MPTCP */
 
